@@ -12,7 +12,7 @@ This project provides two applications that utilise streams API of Akka:
 To run this spplication, do the following 
 
 * Supply as a program argument, a hash tag that shall be used to search for tweets. Supplied hash tag must be prefixed with a #. **_#scala_** for instanse, is a valid hashtag.
-* Go to [application management site of twitter](https://apps.twitter.com/) and login with your credentials. Create an application and go to the section `Application Settings > Consumer Key (API Key) > Manage keys and access tokens`
+* Go to [application management site of twitter](https://apps.twitter.com/) and login with your credentials. Create an application and go to the tab `Keys and Access Tokens` in `Application Management`
 * Collect the following values to authenticate your requests to the Twitter Platform. 
     - API Key 
     - API secret 
