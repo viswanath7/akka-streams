@@ -3,18 +3,18 @@ package com.example.akka.application
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import com.example.akka.{Author, Tweet}
 import com.example.akka.twitter.TwitterClient
+import com.example.akka.{Author, Tweet}
 import org.slf4j.LoggerFactory
-
 import twitter4j.Status
 
-object ReactiveTweets extends App {
+object TwitterTweets extends App {
 
   private val searchableHashTag: String = args.find(arg => arg.startsWith("#")).getOrElse("#Akka")
 
   import actorSystem.dispatcher
-  val logger = LoggerFactory getLogger ReactiveTweets.getClass
+
+  val logger = LoggerFactory getLogger TwitterTweets.getClass
 
   implicit val actorSystem = ActorSystem("akka-streams-reactive-tweets-actor-system")
   implicit val flowMaterialiser = ActorMaterializer()
