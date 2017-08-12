@@ -10,14 +10,14 @@ import twitter4j.Status
 
 object TwitterTweets extends App {
 
-  private val searchableHashTag: String = args.find(arg => arg.startsWith("#")).getOrElse("#Akka")
+  private val searchableHashTag: String = args.find(arg => arg.startsWith("#")).getOrElse("#scala")
 
   import actorSystem.dispatcher
 
   val logger = LoggerFactory getLogger TwitterTweets.getClass
 
-  implicit val actorSystem = ActorSystem("akka-streams-reactive-tweets-actor-system")
-  implicit val flowMaterialiser = ActorMaterializer()
+  implicit val actorSystem: ActorSystem = ActorSystem("akka-streams-reactive-tweets-actor-system")
+  implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer()
 
   private val statuses: Iterator[Status] = TwitterClient.retrieveTweets(searchableHashTag)
   val source = Source.fromIterator(() => statuses)

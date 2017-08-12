@@ -2,8 +2,8 @@
 
 This project provides two applications that utilise streams API of Akka:
 
- * SampleStreamingApplication that prints prime numbers till 1000 
- * TwitterTweets that print 100 tweets for a supplied hash tag.
+ * `PrimeNumbersStreamingApplication` that prints prime numbers till 100 
+ * `TwitterTweets` that print 100 tweets for a supplied hash tag.
 
 
 
