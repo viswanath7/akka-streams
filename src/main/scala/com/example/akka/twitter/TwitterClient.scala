@@ -1,8 +1,9 @@
 package com.example.akka.twitter
 
-import scala.collection.JavaConverters._
 import twitter4j.conf.ConfigurationBuilder
-import twitter4j.{Query, Twitter, TwitterFactory}
+import twitter4j.{Query, Status, Twitter, TwitterFactory}
+
+import scala.collection.JavaConverters._
 
 object TwitterClient {
 
@@ -18,7 +19,7 @@ object TwitterClient {
     new TwitterFactory(configurationBuilder.build()).getInstance()
   }
 
-  def retrieveTweets(term: String) = {
+  def retrieveTweets(term: String): Iterator[Status] = {
     val query = new Query(term)
     query setCount 100
     getInstance.search(query).getTweets.asScala.iterator
