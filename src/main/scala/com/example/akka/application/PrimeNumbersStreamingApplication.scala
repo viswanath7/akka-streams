@@ -15,7 +15,7 @@ object StreamDefinition {
   /**
     *   A stream usually begins at a source; which in case happens to be a range of natural numbers from 1 to 100
     *
-    *   The Source type is parametesized with two types: the first one is the type of element that this source emits
+	  * The Source type is parameterised with two types: the first one is the type of element that this source emits
     *   and the second one may signal that running the source produces some auxiliary value (e.g. a network source may
     *   provide information about the bound port or the peer’s address). Where no auxiliary information is produced,
     *   the type akka.NotUsed is used—and a simple range of integers surely falls into this category.
@@ -50,21 +50,34 @@ object PrimeNumbersStreamingApplication extends App {
     * which is intended to be reused and incorporated in a larger system.
     */
   val materialiser: ActorMaterializer = ActorMaterializer()
-
-  println("Prime numbers")
-
+	
+	logger debug "Akka stream: Prime numbers"
+	logger debug "Source: Numbers between 1 and 100"
+	logger debug "Flow / transformation: Filter for prime numbers"
+	logger debug "Sink: Collects result in a sequence."
+	
+	logger debug "Connecting the source to sink via transformation and running it ..."
   StreamDefinition.source
     .via(StreamDefinition.flow)
     .runWith(StreamDefinition.sink)(materialiser)
-    .onComplete(sequence => handleComputationResult(sequence))
-
-  def handleComputationResult(possiblePrimes: Try[immutable.Seq[Int]]) = {
+	  .onComplete(handleComputationResult)
+	
+	/**
+		* Prints on the console the elements of the sequence containing result
+		*
+		* @param possiblePrimes
+		* @return
+		*/
+	private def handleComputationResult(possiblePrimes: Try[immutable.Seq[Int]]) = {
 
     possiblePrimes match {
-      case Success(primeNumbers) => primeNumbers.foreach(println)
+	    case Success(primeNumbers) =>
+		    logger debug "Prime numbers between 1 and 100"
+		    primeNumbers.foreach(logger debug _.toString)
       case Failure(err) => logger.error("Failed to generate a list of prime numbers", err)
     }
-
+		
+		logger debug "Terminating the actor system as the stream has exhausted ..."
     actorSystem terminate // When the stream finishes, terminate the actor system
   }
 
