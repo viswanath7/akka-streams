@@ -55,10 +55,8 @@ class AkkaStreamTestKitSpec extends TestKit(ActorSystem("test-actor-system"))
 			.run()
 		
 		logger debug "Sending numbers 1 to 10 to test publisher so that the sink shall eventually have a materialised value ..."
-		(1 to 10) foreach (number => {
-			logger debug s"Sending $number to source probe ..."
-			publisher.sendNext(number)
-		})
+		(1 to 10) foreach publisher.sendNext
+		
 		publisher.sendComplete()
 		logger debug "Verifying if the count of prime numbers from 1 to 10 is 5 ..."
 		Await.result(eventualResult, 10 seconds) mustBe 5
