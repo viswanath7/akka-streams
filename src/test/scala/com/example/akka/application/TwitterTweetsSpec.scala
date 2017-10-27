@@ -17,8 +17,7 @@ import scala.reflect._
 import scala.util.Random
 
 /**
-	* As the akka stream implementation is based on actors,
-	* one can utilise Akka test probe from Akka test kit API to test an akka stream set-up
+	* As the akka stream implementation is based on actors, one can utilise TestProbe from  the akka-testkit module to test
 	*/
 class TwitterTweetsSpec extends TestKit(ActorSystem("test-actor-system"))
 	with ImplicitSender with FlatSpecLike with BeforeAndAfterAll with BeforeAndAfter with MustMatchers {
