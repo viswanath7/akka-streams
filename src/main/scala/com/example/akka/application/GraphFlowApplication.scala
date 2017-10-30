@@ -43,18 +43,21 @@ object GraphFlowApplication extends App {
 																						.toMat(FileIO.toPath(Paths.get(outputFilename)))(Keep.right)
 	
 	logger debug "Defining a graph that shall broadcast prime numbers between 1 and 1000 ..."
-	val runnableGraph = RunnableGraph.fromGraph(GraphDSL.create() { implicit builder =>
+	val graph = GraphDSL.create() { implicit builder =>
 		import GraphDSL.Implicits._
 		val broadcast = builder add Broadcast[String](2)
 		
 		source ~> primeNumbersFilteringFlow ~> broadcast ~> fileSink
-																					 broadcast ~> consoleLoggingSink
+		broadcast ~> consoleLoggingSink
 		
+		//  If all inputs and outputs are connected, the graph is no longer considered partial but a ClosedShape;
+		// that can be used as an isolated component
 		ClosedShape
-	})
+	}
+	
 	
 	logger debug "Executing the graph ..."
-	runnableGraph.run
+	RunnableGraph.fromGraph(graph).run()
 	
 	Thread sleep 1000
 	logger debug "Terminating the actor system"

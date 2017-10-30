@@ -53,6 +53,10 @@ object TwitterTweets extends App {
   logger debug "Sink: Logs each Tweet"
   logger debug "Connecting the source to sink via transformation and running it ..."
   
+  /*
+  * A Flow that has both ends “attached” to a Source and Sink respectively, and is ready to be run() and materialised.
+  */
+  
   source(args: _*) //_* is type annotation for repeated parameters
     .via(normalize)
     .runWith(sink)
