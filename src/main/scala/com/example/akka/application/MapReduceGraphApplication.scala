@@ -4,8 +4,8 @@ import java.nio.file.{Path, Paths}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{FileIO, Flow, Framing, Sink, Source}
+import akka.stream.scaladsl.{Balance, FileIO, Flow, Framing, GraphDSL, Merge, RunnableGraph, Sink, Source}
+import akka.stream.{ActorMaterializer, ClosedShape}
 import akka.util.ByteString
 import org.slf4j.LoggerFactory
 
@@ -15,7 +15,6 @@ object MapReduceGraphApplication extends App {
 	
 	implicit val actorSystem: ActorSystem = ActorSystem("map-reduce-graph-actor-system")
 	implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer()
-	import actorSystem.dispatcher
 	
 	private val inputFile = "src/main/resources/input.txt"
 	
@@ -32,10 +31,33 @@ object MapReduceGraphApplication extends App {
 		.flatMapConcat(line => Source.fromIterator[String](() => line.split("\\W+").toIterator))
 		.filter(x => x.matches("[A-Za-z]+"))
 	
-	fileSource
-		.via(linesTransformer)
-		.via(lineToWordsTransformer)
-		.runWith(Sink.foreach(println))
-		.andThen({ case _ => actorSystem.terminate() })
+	val sink = Sink.foreach[Map[Char, Int]](resultMap => {
+		println (s"Total number words in the file, listed by their first character:")
+		println(s"Number of unique alphabetical characters: ${resultMap.size}")
+		resultMap.foreach( pair => println(s"${pair._1} -> ${pair._2}" ))
+	} )
 	
+	logger debug "Defining a graph that shall do map reduce ..."
+	
+	val graph = GraphDSL.create() { implicit builder =>
+		import GraphDSL.Implicits._
+		val balance = builder add Balance[String](2)
+		val merge = builder add Merge[(Char, Int)](2)
+		
+		val alphabetDetector1, alphabetDetector2 = Flow[String].map(word => word.head -> 1)
+		
+		val aggregator: Flow[(Char, Int), Map[Char, Int], NotUsed] = Flow[(Char,Int)]
+			.fold( Map[Char, Int]() ) ((m, pair) => m + (pair._1 ->(m.getOrElse(pair._1, 0)+pair._2)) )
+		
+		fileSource ~> linesTransformer ~> lineToWordsTransformer ~> balance ~> alphabetDetector1 ~> merge ~> aggregator ~> sink
+																																balance ~> alphabetDetector2 ~> merge
+		ClosedShape
+	}
+	
+	logger debug "Executing the graph ..."
+	RunnableGraph.fromGraph(graph).run()
+	
+	Thread sleep 1000
+	logger debug "Terminating the actor system"
+	actorSystem.terminate
 }
