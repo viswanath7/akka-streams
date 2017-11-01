@@ -4,10 +4,12 @@ import java.nio.file.{Path, Paths}
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Balance, FileIO, Flow, Framing, GraphDSL, Merge, RunnableGraph, Sink, Source}
+import akka.stream.scaladsl.{Balance, FileIO, Flow, Framing, GraphDSL, Keep, Merge, RunnableGraph, Sink, Source}
 import akka.stream.{ActorMaterializer, ClosedShape}
 import akka.util.ByteString
 import org.slf4j.LoggerFactory
+
+import scala.collection.immutable.ListMap
 
 object MapReduceGraphApplication extends App {
 	
@@ -31,11 +33,15 @@ object MapReduceGraphApplication extends App {
 		.flatMapConcat(line => Source.fromIterator[String](() => line.split("\\W+").toIterator))
 		.filter(x => x.matches("[A-Za-z]+"))
 	
-	val sink = Sink.foreach[Map[Char, Int]](resultMap => {
+	logger debug "Defining a flow to sort the elements of result map by key ..."
+	val sortResultFlow = Flow[Map[Char, Int]].map(immutableMap => ListMap(immutableMap.toSeq.sortBy(_._1):_*))
+	
+	val printSink = Flow[ListMap[Char, Int]].map({ sortedResult =>
 		println (s"Total number words in the file, listed by their first character:")
-		println(s"Number of unique alphabetical characters: ${resultMap.size}")
-		resultMap.foreach( pair => println(s"${pair._1} -> ${pair._2}" ))
-	} )
+		println(s"Number of unique alphabetical characters: ${sortedResult.size}")
+		sortedResult.foreach( pair => println(s"${pair._1} -> ${pair._2}" ))
+		sortedResult
+	}).toMat(Sink.head)(Keep.right)
 	
 	logger debug "Defining a graph that shall do map reduce ..."
 	
@@ -49,7 +55,7 @@ object MapReduceGraphApplication extends App {
 		val aggregator: Flow[(Char, Int), Map[Char, Int], NotUsed] = Flow[(Char,Int)]
 			.fold( Map[Char, Int]() ) ((m, pair) => m + (pair._1 ->(m.getOrElse(pair._1, 0)+pair._2)) )
 		
-		fileSource ~> linesTransformer ~> lineToWordsTransformer ~> balance ~> alphabetDetector1 ~> merge ~> aggregator ~> sink
+		fileSource ~> linesTransformer ~> lineToWordsTransformer ~> balance ~> alphabetDetector1 ~> merge ~> aggregator ~> sortResultFlow ~> printSink
 																																balance ~> alphabetDetector2 ~> merge
 		ClosedShape
 	}

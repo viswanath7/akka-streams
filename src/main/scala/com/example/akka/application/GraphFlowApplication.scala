@@ -16,6 +16,9 @@ import scala.language.{implicitConversions, postfixOps}
 	* Computation graphs model advanced processing structures;
 	* typically when operations involving multiple inputs or outputs are involved.
 	*
+	* Each part of the graph is a GraphStage with a given Shape
+	* where the most basic shapes being: SourceShape, FlowShape and SinkShape.
+	*
 	* This application demonstrates graph flow by broadcasting prime numbers output stream to log and file
 	*/
 object GraphFlowApplication extends App {
