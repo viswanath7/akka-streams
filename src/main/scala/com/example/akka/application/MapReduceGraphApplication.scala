@@ -13,7 +13,7 @@ import scala.collection.immutable.ListMap
 
 object MapReduceGraphApplication extends App {
 	
-	val logger = LoggerFactory getLogger GraphFlowApplication.getClass
+	val logger = LoggerFactory getLogger MapReduceGraphApplication.getClass
 	
 	implicit val actorSystem: ActorSystem = ActorSystem("map-reduce-graph-actor-system")
 	implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer()
