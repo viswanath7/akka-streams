@@ -5,11 +5,13 @@ import java.nio.file.{Path, Paths}
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Balance, FileIO, Flow, Framing, GraphDSL, Keep, Merge, Sink, Source}
-import akka.stream.{ActorMaterializer, FlowShape}
+import akka.stream.{ActorMaterializer, Attributes, FlowShape, OverflowStrategy}
 import akka.util.ByteString
 import org.slf4j.LoggerFactory
 
 import scala.collection.immutable.ListMap
+import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.{Failure, Success}
 
 
@@ -25,6 +27,8 @@ object MapReduceWorkersPoolGraphApplication extends App {
 	logger debug "Defining a source from input file ..."
 	val inputFilePath: Path = Paths get inputFile
 	val fileSource = FileIO fromPath inputFilePath
+	// 1024 elements are de-queued from source and stored locally in memory
+	fileSource.buffer(1024, OverflowStrategy.backpressure)
 	
 	logger debug "Defining a flow to retrieve lines of the file ..."
 	val linesTransformer: Flow[ByteString, String, NotUsed] = Framing.delimiter( ByteString("\n"),
@@ -39,12 +43,19 @@ object MapReduceWorkersPoolGraphApplication extends App {
 	val forkJoinTransformer: Flow[String, (Char, Int), NotUsed] = {
 		logger debug "Defining a flow for worker nodes ..."
 		def alphabetDetector = Flow[String].map(word => word.head -> 1)
+			.addAttributes(Attributes.inputBuffer(initial = 1, max = 1024))
+		// Set the internal buffer size for this flow segment
 		balancer(3, alphabetDetector)
 	}
 	
 	logger debug "Defining a flow to aggregate the results from worker nodes ..."
 	val resultAggregator: Flow[(Char, Int), Map[Char, Int], NotUsed] = Flow[(Char,Int)]
 		.fold( Map[Char, Int]() ) ((m, pair) => m + (pair._1 ->(m.getOrElse(pair._1, 0)+pair._2)) )
+		// Set the internal buffer size for this flow segment
+		.addAttributes(Attributes.inputBuffer(initial = 1, max = 8192))
+		// Ensure that subscribers / consumers that block the channel for more than 2 seconds
+		// are forcefully removed and their stream failed.
+		.backpressureTimeout(2 seconds)
 	
 	logger debug "Defining a flow to sort the elements of result map by key ..."
 	val sortResultFlow = Flow[Map[Char, Int]].map(immutableMap => ListMap(immutableMap.toSeq.sortBy(_._1):_*))

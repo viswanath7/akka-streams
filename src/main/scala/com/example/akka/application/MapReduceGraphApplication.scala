@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Balance, FileIO, Flow, Framing, GraphDSL, Keep, Merge, RunnableGraph, Sink, Source}
-import akka.stream.{ActorMaterializer, ClosedShape}
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings, ClosedShape, OverflowStrategy}
 import akka.util.ByteString
 import org.slf4j.LoggerFactory
 
@@ -16,13 +16,17 @@ object MapReduceGraphApplication extends App {
 	val logger = LoggerFactory getLogger MapReduceGraphApplication.getClass
 	
 	implicit val actorSystem: ActorSystem = ActorSystem("map-reduce-graph-actor-system")
-	implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer()
+	// For performance optimisation, Akka streams introduces a buffer for every asynchronous processing stage
+	implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(actorSystem)
+		.withInputBuffer(initialSize = 16, maxSize = 8192))
 	
 	private val inputFile = "src/main/resources/input.txt"
 	
 	logger debug "Defining a source from input file ..."
 	val inputFilePath: Path = Paths get inputFile
 	val fileSource = FileIO fromPath inputFilePath
+	// 1024 elements are de-queued from source and stored locally in memory
+	fileSource.buffer(1024, OverflowStrategy.backpressure)
 	
 	logger debug "Defining a flow to retrieve lines of the file ..."
 	val linesTransformer: Flow[ByteString, String, NotUsed] = Framing.delimiter( ByteString("\n"),

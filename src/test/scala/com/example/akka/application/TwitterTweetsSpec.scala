@@ -64,7 +64,7 @@ class TwitterTweetsSpec extends TestKit(ActorSystem("test-actor-system"))
 		logger debug "Testing sink to receive supplied tweets ..."
 		
 		// searching for implicit value of ClassTag[Tweet] and assigning it to tweetClassTag
-		val clazzTag = implicitly[reflect.ClassTag[Tweet]]
+		val clazzTag: ClassTag[Tweet] = implicitly[reflect.ClassTag[Tweet]]
 		
 		logger debug "Creating source that shall periodically emit tweet"
 		val source = Source.tick(initialDelay = 0 milliseconds, interval = 500 milliseconds, tick = (Random shuffle sampleTweets).head)

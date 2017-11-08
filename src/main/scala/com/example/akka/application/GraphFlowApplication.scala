@@ -4,7 +4,7 @@ import java.nio.file.Paths
 
 import akka.actor.ActorSystem
 import akka.stream.scaladsl._
-import akka.stream.{ActorMaterializer, ClosedShape, IOResult}
+import akka.stream.{ActorMaterializer, ActorMaterializerSettings, ClosedShape, IOResult}
 import akka.util.ByteString
 import akka.{Done, NotUsed}
 import org.slf4j.LoggerFactory
@@ -26,7 +26,9 @@ object GraphFlowApplication extends App {
 	val logger = LoggerFactory getLogger GraphFlowApplication.getClass
 	
 	implicit val actorSystem: ActorSystem = ActorSystem("graph-flow-actor-system")
-	implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer()
+	// For performance optimisation, Akka streams introduces a buffer for every asynchronous processing stage
+	implicit val flowMaterialiser: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(actorSystem)
+		.withInputBuffer(initialSize = 16, maxSize = 8192))
 	
 	private val outputFilename = "target/primes.txt"
 	
@@ -49,6 +51,8 @@ object GraphFlowApplication extends App {
 	val graph = GraphDSL.create() { implicit builder =>
 		import GraphDSL.Implicits._
 		val broadcast = builder add Broadcast[String](2)
+		
+		// Mutable object GraphDSL.Builder is used implicitly by ~> operator
 		
 		source ~> primeNumbersFilteringFlow ~> broadcast ~> fileSink
 		broadcast ~> consoleLoggingSink
